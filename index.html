@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>PocketCard</title>
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --card: #ffffff;
+    --text: #111827;
+    --sub: #6b7280;
+    --border: #e5e7eb;
+    --primary: #2563eb;
+    --red: #dc2626;
+    --amber: #d97706;
+    --green: #16a34a;
+  }
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  header {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  header h1 { font-size: 16px; font-weight: 700; }
+  .badge {
+    font-size: 12px;
+    background: #eff6ff;
+    color: var(--primary);
+    padding: 4px 10px;
+    border-radius: 99px;
+    font-weight: 600;
+  }
+  main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .view { display: none; height: 100%; }
+  .view.active { display: flex; flex-direction: column; }
+
+  select, input, textarea {
+    font-size: 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    background: var(--card);
+    color: var(--text);
+    width: 100%;
+  }
+
+  /* Filter Pill & Panel */
+  .filter-toggle {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 9px 12px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .filter-panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px;
+    margin-bottom: 10px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .filter-panel label {
+    display: block;
+    font-size: 11px;
+    color: var(--sub);
+    margin-bottom: 3px;
+  }
+
+  /* Flashcard */
+  .flashcard {
+    flex: 1;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    cursor: pointer;
+    user-select: none;
+    overflow-y: auto;
+    min-height: 160px;
+  }
+  .card-meta {
+    font-size: 12px;
+    color: var(--sub);
+    margin-bottom: 12px;
+  }
+  .card-q {
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.5;
+    word-break: break-word;
+  }
+  .card-a {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px dashed var(--border);
+    font-size: 18px;
+    color: var(--primary);
+    font-weight: 700;
+    line-height: 1.5;
+    width: 100%;
+    word-break: break-word;
+  }
+  .hidden { display: none !important; }
+
+  .controls {
+    margin-top: 12px;
+    flex-shrink: 0;
+  }
+  .btn {
+    width: 100%;
+    padding: 13px;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    background: var(--primary);
+    color: #fff;
+  }
+  .btn:active { opacity: 0.8; }
+  .btn-sub { background: #e5e7eb; color: var(--text); }
+  .rate-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+  }
+  .btn-again { background: #fee2e2; color: var(--red); }
+  .btn-hard { background: #fef3c7; color: var(--amber); }
+  .btn-good { background: #dcfce7; color: var(--green); }
+
+  /* Add / List View */
+  .box {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 12px;
+  }
+  .meta-inputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .item {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+  .item:first-child { border-top-left-radius: 10px; border-top-right-radius: 10px; }
+  .item:last-child { border-bottom: none; border-bottom-left-radius: 10px; border-bottom-right-radius: 10px; }
+  .item-text { flex: 1; min-width: 0; }
+  .item-q { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .item-a { font-size: 12px; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .del-btn {
+    background: #fee2e2;
+    color: var(--red);
+    border: none;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  nav {
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    padding-bottom: env(safe-area-inset-bottom);
+    flex-shrink: 0;
+  }
+  nav button {
+    background: none;
+    border: none;
+    padding: 12px 4px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--sub);
+  }
+  nav button.active { color: var(--primary); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>PocketCard</h1>
+  <span class="badge" id="stat-badge">習得 0/0</span>
+</header>
+
+<main>
+  <!-- 1. 学習ビュー -->
+  <section id="view-study" class="view active">
+    <div class="filter-toggle" onclick="toggleFilterPanel()">
+      <span id="filter-summary">すべて出題 · シャッフル</span>
+      <span style="color:var(--primary);" id="filter-toggle-text">絞り込み ▼</span>
+    </div>
+
+    <div class="filter-panel hidden" id="filter-panel">
+      <div>
+        <label>習得状況</label>
+        <select id="f-status" onchange="resetSession()">
+          <option value="all">すべて</option>
+          <option value="not_mastered">習得済み以外</option>
+          <option value="unlearned">未学習のみ</option>
+          <option value="again">もう一度のみ</option>
+          <option value="hard">不安のみ</option>
+          <option value="mastered">習得済みのみ</option>
+        </select>
+      </div>
+      <div>
+        <label>時代・タグ</label>
+        <select id="f-tag" onchange="resetSession()">
+          <option value="all">すべて</option>
+        </select>
+      </div>
+      <div>
+        <label>プリント番号</label>
+        <select id="f-print" onchange="resetSession()">
+          <option value="all">すべて</option>
+        </select>
+      </div>
+      <div>
+        <label>難易度</label>
+        <select id="f-diff" onchange="resetSession()">
+          <option value="all">すべて</option>
+          <option value="基本">基本</option>
+          <option value="標準">標準</option>
+          <option value="応用">応用</option>
+        </select>
+      </div>
+      <div>
+        <label>出題数</label>
+        <select id="f-limit" onchange="resetSession()">
+          <option value="0">全問出題</option>
+          <option value="10">10問まで</option>
+          <option value="20">20問まで</option>
+          <option value="30">30問まで</option>
+        </select>
+      </div>
+      <div>
+        <label>出題順</label>
+        <select id="f-order" onchange="resetSession()">
+          <option value="shuffle">シャッフル</option>
+          <option value="seq">登録順</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="flashcard" onclick="revealAnswer()">
+      <div class="card-meta" id="card-meta">タップして開始</div>
+      <div class="card-q" id="card-q">問題がありません</div>
+      <div class="card-a hidden" id="card-a"></div>
+    </div>
+
+    <div class="controls">
+      <button class="btn" id="btn-show" onclick="revealAnswer()">答えを見る</button>
+      <div class="rate-grid hidden" id="rate-btns">
+        <button class="btn btn-again" onclick="rateCard('again')">❌ もう一度</button>
+        <button class="btn btn-hard" onclick="rateCard('hard')">🔺 不安</button>
+        <button class="btn btn-good" onclick="rateCard('mastered')">⭕️ 習得</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. 登録・一覧ビュー -->
+  <section id="view-add" class="view" style="overflow-y:auto;">
+    <div class="box">
+      <textarea id="bulk-input" rows="3" placeholder="問題 / 答え（1行に1問。スラッシュやタブ区切りで一括登録）"></textarea>
+      <div style="font-size:12px; color:var(--primary); font-weight:600; margin-top:8px; cursor:pointer;" onclick="toggleMetaInputs()" id="meta-toggle">
+        ＋ 時代・プリント番号・難易度を指定（任意）
+      </div>
+      <div class="meta-inputs hidden" id="meta-inputs">
+        <input type="text" id="in-tag" placeholder="時代・タグ">
+        <input type="text" id="in-print" placeholder="プリントNo.">
+        <select id="in-diff">
+          <option value="">難易度なし</option>
+          <option value="基本">基本</option>
+          <option value="標準">標準</option>
+          <option value="応用">応用</option>
+        </select>
+      </div>
+      <button class="btn" style="margin-top:10px;" onclick="addCards()">問題を追加</button>
+    </div>
+
+    <div style="font-size:12px; color:var(--sub); margin: 4px 0 8px; display:flex; justify-content:space-between;">
+      <span id="list-count">登録一覧</span>
+      <span onclick="toggleList()" style="color:var(--primary); font-weight:600; cursor:pointer;" id="toggle-list-btn">一覧を表示 ▼</span>
+    </div>
+    <div id="list-area" class="hidden">
+      <input type="text" id="list-search" placeholder="キーワードで検索..." oninput="renderList()" style="margin-bottom:8px;">
+      <div id="card-list"></div>
+      <button id="btn-more" class="btn btn-sub hidden" style="margin-top:8px;" onclick="showMore()">さらに30件表示</button>
+    </div>
+  </section>
+
+  <!-- 3. データ同期ビュー -->
+  <section id="view-data" class="view" style="overflow-y:auto;">
+    <div class="box">
+      <p style="font-size:13px; color:var(--sub); margin-bottom:8px;">PCや別端末とのデータ引き継ぎ・バックアップ</p>
+      <button class="btn" onclick="exportSync()">同期コードをコピー</button>
+      <textarea id="sync-box" rows="4" style="margin-top:10px;" placeholder="ここに同期コードを貼り付けて読み込み"></textarea>
+      <button class="btn btn-sub" style="margin-top:8px;" onclick="importSync()">同期コードを読み込む</button>
+    </div>
+  </section>
+</main>
+
+<nav>
+  <button class="active" onclick="switchTab('study', this)">学習</button>
+  <button onclick="switchTab('add', this)">登録・一覧</button>
+  <button onclick="switchTab('data', this)">データ同期</button>
+</nav>
+
+<script>
+  const STORAGE_KEY = 'pocketcard_data_v1';
+  let cards = [];
+  let queue = [];
+  let currentIndex = 0;
+  let isRevealed = false;
+  let listLimit = 30;
+  let listVisible = false;
+
+  function init() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        cards = Array.isArray(parsed) ? parsed : (parsed.cards || []);
+      }
+    } catch (e) { cards = []; }
+    updateFilterOptions();
+    resetSession();
+  }
+
+  function save() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(cards));
+    updateBadge();
+  }
+
+  function updateBadge() {
+    const mastered = cards.filter(c => c.status === 'mastered').length;
+    document.getElementById('stat-badge').textContent = `習得 ${mastered}/${cards.length}`;
+  }
+
+  function switchTab(name, btn) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    document.getElementById('view-' + name).classList.add('active');
+    btn.classList.add('active');
+    if (name === 'study') resetSession();
+    if (name === 'add') {
+      document.getElementById('list-count').textContent = `登録済み: ${cards.length}問`;
+      if (listVisible) renderList();
+    }
+  }
+
+  function toggleFilterPanel() {
+    const panel = document.getElementById('filter-panel');
+    const txt = document.getElementById('filter-toggle-text');
+    const isHidden = panel.classList.toggle('hidden');
+    txt.textContent = isHidden ? '絞り込み ▼' : '閉じる ▲';
+  }
+
+  function toggleMetaInputs() {
+    const el = document.getElementById('meta-inputs');
+    const btn = document.getElementById('meta-toggle');
+    const isHidden = el.classList.toggle('hidden');
+    btn.textContent = isHidden ? '＋ 時代・プリント番号・難易度を指定（任意）' : '− 詳細指定を閉じる';
+  }
+
+  function updateFilterOptions() {
+    const tagSel = document.getElementById('f-tag');
+    const printSel = document.getElementById('f-print');
+    const curTag = tagSel.value;
+    const curPrint = printSel.value;
+
+    const tags = [...new Set(cards.map(c => c.tag || c.era).filter(Boolean))];
+    const prints = [...new Set(cards.map(c => c.printNo).filter(Boolean))];
+
+    tagSel.innerHTML = '<option value="all">すべて</option>' +
+      tags.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
+    printSel.innerHTML = '<option value="all">すべて</option>' +
+      prints.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
+
+    if (tags.includes(curTag)) tagSel.value = curTag;
+    if (prints.includes(curPrint)) printSel.value = curPrint;
+  }
+
+  function resetSession() {
+    const st = document.getElementById('f-status').value;
+    const tg = document.getElementById('f-tag').value;
+    const pr = document.getElementById('f-print').value;
+    const df = document.getElementById('f-diff').value;
+    const lim = parseInt(document.getElementById('f-limit').value, 10);
+    const ord = document.getElementById('f-order').value;
+
+    let filtered = cards.filter(c => {
+      const s = c.status || 'unlearned';
+      if (st === 'not_mastered' && s === 'mastered') return false;
+      if (st !== 'all' && st !== 'not_mastered' && s !== st) return false;
+      if (tg !== 'all' && (c.tag || c.era) !== tg) return false;
+      if (pr !== 'all' && c.printNo !== pr) return false;
+      if (df !== 'all' && c.diff !== df) return false;
+      return true;
+    });
+
+    if (ord === 'shuffle') {
+      for (let i = filtered.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [filtered[i], filtered[j]] = [filtered[j], filtered[i]];
+      }
+    } else {
+      filtered = filtered.slice().reverse();
+    }
+
+    if (lim > 0 && filtered.length > lim) {
+      filtered = filtered.slice(0, lim);
+    }
+
+    queue = filtered;
+    currentIndex = 0;
+
+    // サマリー更新
+    const stText = document.getElementById('f-status').selectedOptions[0].text;
+    const parts = [stText];
+    if (tg !== 'all') parts.push(tg);
+    if (pr !== 'all') parts.push('No.' + pr);
+    if (df !== 'all') parts.push(df);
+    parts.push(`${queue.length}問`);
+    document.getElementById('filter-summary').textContent = parts.join(' · ');
+
+    updateBadge();
+    renderCard();
+  }
+
+  function renderCard() {
+    const qEl = document.getElementById('card-q');
+    const aEl = document.getElementById('card-a');
+    const mEl = document.getElementById('card-meta');
+    const showBtn = document.getElementById('btn-show');
+    const rateBtns = document.getElementById('rate-btns');
+
+    isRevealed = false;
+    aEl.classList.add('hidden');
+    rateBtns.classList.add('hidden');
+
+    if (queue.length === 0) {
+      mEl.textContent = '完了';
+      qEl.textContent = cards.length === 0 ? '下の「登録」から問題を追加してください' : '条件に合う問題はすべて終了しました！';
+      showBtn.classList.add('hidden');
+      return;
+    }
+
+    const c = queue[currentIndex];
+    const statusMap = { unlearned: '未学習', again: 'もう一度', hard: '不安', mastered: '習得済み' };
+    const meta = [`${currentIndex + 1}/${queue.length}問`, statusMap[c.status || 'unlearned']];
+    if (c.tag || c.era) meta.push(c.tag || c.era);
+    if (c.printNo) meta.push('No.' + c.printNo);
+    if (c.diff) meta.push(c.diff);
+
+    mEl.textContent = meta.join(' · ');
+    qEl.textContent = c.q;
+    aEl.textContent = c.a;
+    showBtn.classList.remove('hidden');
+  }
+
+  function revealAnswer() {
+    if (queue.length === 0 || isRevealed) return;
+    isRevealed = true;
+    document.getElementById('card-a').classList.remove('hidden');
+    document.getElementById('btn-show').classList.add('hidden');
+    document.getElementById('rate-btns').classList.remove('hidden');
+  }
+
+  function rateCard(status) {
+    if (queue.length === 0) return;
+    const target = queue[currentIndex];
+    const idx = cards.findIndex(c => c.id === target.id);
+    if (idx !== -1) {
+      cards[idx].status = status;
+      save();
+    }
+    if (status === 'again') {
+      queue.push(target);
+    }
+    currentIndex++;
+    if (currentIndex >= queue.length) {
+      queue = [];
+    }
+    renderCard();
+  }
+
+  function addCards() {
+    const text = document.getElementById('bulk-input').value.trim();
+    const tag = document.getElementById('in-tag').value.trim();
+    const printNo = document.getElementById('in-print').value.trim();
+    const diff = document.getElementById('in-diff').value;
+    if (!text) return;
+
+    const lines = text.split(/\r?\n/);
+    let added = 0;
+    lines.forEach(line => {
+      const parts = line.split(/\t|\/|：|:/);
+      if (parts.length >= 2) {
+        const q = parts[0].trim();
+        const a = parts.slice(1).join('/').trim();
+        if (q && a) {
+          cards.unshift({
+            id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+            q, a, tag, printNo, diff, status: 'unlearned'
+          });
+          added++;
+        }
+      }
+    });
+
+    if (added > 0) {
+      save();
+      updateFilterOptions();
+      document.getElementById('bulk-input').value = '';
+      document.getElementById('list-count').textContent = `登録済み: ${cards.length}問（+${added}問追加）`;
+      if (listVisible) renderList();
+    } else {
+      alert('「問題 / 答え」の形式で入力してください');
+    }
+  }
+
+  function toggleList() {
+    listVisible = !listVisible;
+    const area = document.getElementById('list-area');
+    const btn = document.getElementById('toggle-list-btn');
+    if (listVisible) {
+      listLimit = 30;
+      area.classList.remove('hidden');
+      btn.textContent = '閉じる ▲';
+      renderList();
+    } else {
+      area.classList.add('hidden');
+      btn.textContent = '一覧を表示 ▼';
+    }
+  }
+
+  function showMore() {
+    listLimit += 30;
+    renderList();
+  }
+
+  function renderList() {
+    const listEl = document.getElementById('card-list');
+    const kw = (document.getElementById('list-search').value || '').trim().toLowerCase();
+    const filtered = kw
+      ? cards.filter(c => c.q.toLowerCase().includes(kw) || c.a.toLowerCase().includes(kw) || (c.tag || '').toLowerCase().includes(kw))
+      : cards;
+
+    const slice = filtered.slice(0, listLimit);
+    listEl.innerHTML = slice.map(c => {
+      const tags = [c.tag || c.era, c.printNo ? 'No.' + c.printNo : '', c.diff].filter(Boolean).join(' / ');
+      return `
+        <div class="item">
+          <div class="item-text">
+            <div class="item-q">${escapeHtml(c.q)}</div>
+            <div class="item-a">${escapeHtml(c.a)}${tags ? ' [' + escapeHtml(tags) + ']' : ''}</div>
+          </div>
+          <button class="del-btn" onclick="deleteCard('${c.id}')">削除</button>
+        </div>
+      `;
+    }).join('');
+
+    const moreBtn = document.getElementById('btn-more');
+    if (filtered.length > listLimit) {
+      moreBtn.classList.remove('hidden');
+      moreBtn.textContent = `さらに30件表示（残り ${filtered.length - listLimit}件）`;
+    } else {
+      moreBtn.classList.add('hidden');
+    }
+  }
+
+  function deleteCard(id) {
+    cards = cards.filter(c => c.id !== id);
+    save();
+    updateFilterOptions();
+    document.getElementById('list-count').textContent = `登録済み: ${cards.length}問`;
+    renderList();
+  }
+
+  function exportSync() {
+    const code = JSON.stringify(cards);
+    document.getElementById('sync-box').value = code;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(code).then(() => alert('同期コードをコピーしました！'));
+    } else {
+      alert('下の枠内のテキストをすべてコピーしてください');
+    }
+  }
+
+  function importSync() {
+    try {
+      const raw = document.getElementById('sync-box').value.trim();
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      const imported = Array.isArray(parsed) ? parsed : (parsed.cards || []);
+      if (!Array.isArray(imported)) throw new Error();
+      cards = imported.map(c => ({
+        id: c.id || Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+        q: c.q || c.question || '',
+        a: c.a || c.answer || '',
+        tag: c.tag || c.era || '',
+        printNo: c.printNo || '',
+        diff: c.diff || c.difficulty || '',
+        status: c.status || 'unlearned'
+      }));
+      save();
+      updateFilterOptions();
+      alert(`${cards.length}問のデータを読み込みました！`);
+    } catch (e) {
+      alert('同期コードの形式が正しくありません');
+    }
+  }
+
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, m => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[m]));
+  }
+
+  init();
+</script>
+</body>
+</html>
